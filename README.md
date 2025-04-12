@@ -10,3 +10,5 @@ The ourMethodStr structure is where the CC format comes into play. It aims to or
  - startRowClus: Starting row index for each cluster.
  - startColClus: Starting column index for each cluster.
  - storeValues: Stores the values associated with elements in the cluster format.
+
+### Example
