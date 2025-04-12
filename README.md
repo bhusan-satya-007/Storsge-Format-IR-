@@ -28,4 +28,13 @@ The CCStorage structure, after clustering, would contain information like this (
 ## Sparse Matrix Vector Multiplication (SpMV)
 Sparse Matrix-Vector Multiplication (SpMV) is a fundamental operation in scientific and engineering computing, involving multiplying a sparse matrix with a vector, and is crucial for optimizing performance in various applications and platforms.
 
-![A diagram of a hardware architecture designed to perform sparse matrix-vector multiplication]()
+![A diagram of a hardware architecture designed to perform sparse matrix-vector multiplication](https://github.com/bhusan-satya-007/Storsge-Format-IR-/blob/main/SpMV%20Depiction.png)
+
+- Result Vector Register: This register holds the elements of the resulting vector (often called ’x’ in the equation Ax = b) as the computation progresses. It is typically large enough to hold all the elements of the result vector.
+- Column Position Register: This register likely stores information about the column index of non-zero elements in the sparse matrix.
+- Column Position Register: This register likely stores information about the column index of non-zero elements in the sparse matrix.
+- Matrix element Vector Register: This register is where elements of the sparse matrix (the 'A' in Ax = b) are stored, and from which they are read for computation.
+- Vector Register containing elements of dense vector b: This register stores elements of the dense vector ’b’, the one that is being multiplied by a sparse matrix.
+- Multiplier: This block performs multiplication. One of its inputs comes from the Matrix element Vector Register and the other from the Vector Register containing elements of dense vector b.
+- Adder: This block performs addition. Its purpose is to accumulate the partial products from the multiplier.
+- MUX(Multiplexer): The MUX acts as a selector. It decides where the initial value of the accumulator (part of the Result Vector Register) comes from.
