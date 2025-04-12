@@ -38,3 +38,57 @@ Sparse Matrix-Vector Multiplication (SpMV) is a fundamental operation in scienti
 - Multiplier: This block performs multiplication. One of its inputs comes from the Matrix element Vector Register and the other from the Vector Register containing elements of dense vector b.
 - Adder: This block performs addition. Its purpose is to accumulate the partial products from the multiplier.
 - MUX(Multiplexer): The MUX acts as a selector. It decides where the initial value of the accumulator (part of the Result Vector Register) comes from.
+
+### SpMV Function Block (C)
+```
+void spmv_coo(const double* x, double* y, const sparse_matrix_coo* A) {
+ int num_rows = A->num_rows;
+ int num_nonzeros = A->num_nonzeros;
+ int* row_ind = A->row_ind;
+ int* col_ind = A->col_ind;
+ double* values = A->values;
+ // Initialize y to 0
+ for (int i = 0; i < num_rows; ++i) {
+ y[i] = 0.0;
+ }
+ // Iterate through the non-zero elements
+ for (int i = 0; i < num_nonzeros; ++i) {
+ int row = row_ind[i];
+ int col = col_ind[i];
+ y[row] += values[i] * x[col]; // y[row] = y[row] + A[row,col] * x[col]
+ }
+ }
+```
+
+## Code Explanation for CC
+### Creating Structure
+```
+struct ourMethodStr {
+	int rows; // Number of rows
+	int cols ; // Number of columns
+	int nonZeros ; // Number of non−zero elements
+ 	int∗ clusterSizes ; // Array to store the size of each cluster
+};
+```
+
+- Stores matrix data in a Clustered Column (CC) format, the final format for SPMV.
+- **rows, cols, nonZeros:** Matrix dimensions and number of non-zero elements.
+- **clusterSizes:** Stores the number of elements in each cluster. A cluster represents a contiguous block of non-zero elements.
+- **numOfClusters:** Total number of clusters identified.
+- **startRowClus, startColClus:** Starting row and column indices for each cluster. These mark the top-left corner of each cluster.
+- **storeValues:** Stores element values, but ordered according to the clustering. This is the primary data structure for the clustered representation.
+
+### Allocate Memory for Arrays in CC Structure
+```
+struct StoreDiag∗ allocate_mem_diag(struct StoreDiag∗ diagStorage , int nonZeros) {
+	diagStorage−>storeOffsets = (int ∗)malloc(nonZeros ∗ sizeof (int)) ;
+	diagStorage−>storeRow = (int ∗)malloc(nonZeros ∗ sizeof (int)) ;
+	diagStorage−>storeCol = (int ∗)malloc(nonZeros ∗ sizeof (int)) ;
+	diagStorage−>storeValues = (double∗)malloc(nonZeros ∗ sizeof (double)) ;
+	diagStorage−>nonZeros = nonZeros ;
+	return diag
+}
+```
+- Allocates memory for arrays within an _ourMethodStr_ (CC) structure.
+- _clusterSizes_, _startRowClus_, and _startColClus_ are initially allocated for only 1 integer. This is inefficient and likely a placeholder, requiring later reallocation.
+- Sets the _rows_, _cols_, and _nonZeros_ members.
