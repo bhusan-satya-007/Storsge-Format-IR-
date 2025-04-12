@@ -12,3 +12,15 @@ The ourMethodStr structure is where the CC format comes into play. It aims to or
  - storeValues: Stores the values associated with elements in the cluster format.
 
 ### Example
+![Depiction of working of Contiguous Clustering in a Sparse Matrix](https://github.com/bhusan-satya-007/Storsge-Format-IR-/blob/main/CC%20Diagramatic%20Depiction.png)]
+
+- **diagStorage:** The diagStorage struct would store the (row, col, value) and offset (col
+row) for each non-zero element. These would be sorted by offset (col-row).
+- **CCStorage:** The cc() function will create a clustering of the elements.
+
+The CCStorage structure, after clustering, would contain information like this (using the example data):
+– **numOfClusters:** 5 _(one for each diagonal)_
+– **clusterSizes:** [2, 2, 1, 1, 1]_(size of each diagonal)_
+– **startRowClus:** [3, 5, 2, 0, 1] _(starting rows of each diagonal)_
+– **startColClus:** [0, 4, 2, 3, 5] _(starting columns of each diagonal)_
+– **storeValues:** [7, 2, 6, 8, 1, 9, 3] _(values corresponding to the start rows)_
