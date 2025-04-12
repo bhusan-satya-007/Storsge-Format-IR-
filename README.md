@@ -208,5 +208,111 @@ void sortOurMethodStr(struct StoreDiag∗ diagStorage){
 	mergeSort(diagStorage,0,diagStorage−>nonZeros−1) ;
 }
 ```
-- Wrapper function to initiate merge sort on _StoreDiag_ structure
+- This is awrapper function to initiate merge sort on _StoreDiag_ structure
 - Calls _mergeSort_ on the entire range of the _storeOffsets_ array, sorting the structure by diagonal offset. This pre-processing step is important for the subsequent clustering process.
+
+### printArray Function
+```
+void printArray(int arr [] , int size ) {
+	f or (int i=0;i<size; i++) {
+		printf("%d ",arr[ i ]) ;
+	}
+	printf ("\n") ;
+}
+```
+
+- Prints the elements of an integer array to the console for debugging or visualization.
+
+### printArrayValDouble Function
+```
+void printArrayValDouble(double arr[],int size){
+	for (int i = 0; i < size; i++) {
+		printf("% lf " , arr [ i ]) ;
+	}
+	printf ("\n") ;
+}
+```
+- Prints the elements of a double array to the console. Useful for inspecting floating-point data.
+
+### cc Function (Clustered Column and SPMV)
+```
+// Main function : Entry point of the program
+// Parameters: void
+// Return Value: int (0 for success , non-zero for failure )
+int main() {
+	FILE* file = fopen("matrixDataset/crystk02.mtx", "r");
+	if (file == NULL) {
+		perror("Error opening file");
+		return EXIT_FAILURE;
+	}
+	char line[256];
+	while (fgets(line, sizeof(line), file) != NULL) {
+		if (line[0] != '%' && line[0] != '\n') {
+			break;
+		}
+	}
+	int rows, cols, nonZeros;
+	sscanf(line, "%d %d %d", &rows, &cols, &nonZeros);
+	struct StoreDiag* diagStorage = (struct StoreDiag*)malloc(sizeof(struct StoreDiag));
+	if (diagStorage==NULL) {
+		fprintf(stderr, "Memory allocation for diagStorage failed\n");
+		fclose(file);
+		return EXIT_FAILURE;
+	}
+	diagStorage = allocate_mem_diag(diagStorage, nonZeros);
+	printf("The no. of Rows: %d \nThe no. of Columns: %d \nThe No. of NonZeros in this matrix : %d\n", rows, cols, nonZeros);
+	int row, col;
+	double value;
+	int i = 0;
+	while (fscanf(file, "%d %d %lf ", &row, &col, &value) == 3) {
+		if (row >= 1 && row <= rows && col >= 1 && col <= cols) {
+			diagStorage->storeRow[i] = row;
+			diagStorage->storeCol[i] = col;
+			diagStorage->storeValues[i] = value;
+			diagStorage->storeOffsets[i++] = col - row;
+		}
+		else {
+			fprintf(stderr, "Warning: Index out of bounds (%d, %d)\n", row, col);
+		}
+	}
+	fclose(file); // Close the matrix file
+
+	sortOurMethodStr(diagStorage) ; // Call merge sort instead to sort the data based on offsets
+	
+	struct ourMethodStr∗ CCStorage = (struct ourMethodStr∗)malloc(sizeof(struct ourMethodStr)) ;
+	if (CCStorage == NULL) {
+		fprintf ( stderr , "Memory allocation for CCStorage failed\n") ;
+		free(diagStorage−>storeOffsets);
+		free(diagStorage−>storeCol);
+		free(diagStorage−>storeRows);
+		free(diagStorage−>storeValues);
+		free(diagStorage);
+		return EXIT_FAILURE;
+	}
+	CCStorage=allocate_mem_cc(CCStorage,rows, cols , nonZeros); // Allocate memory
+	CCStorage−>rows = rows; // Store the number of rows
+	CCStorage−>cols = cols; // Store the number of columns
+	CCStorage−>nonZeros =nonZeros; // Store the number of non−zero elements
+	cc(diagStorage ,CCStorage); // Call the cc function for clustering and spmv
+	free(diagStorage−>storeOffsets);
+
+	//Free the allocated meaning
+	free(diagStorage−>storeCol);
+	free(diagStorage−>storeRow);
+	free(diagStorage−>storeValues);
+	free(diagStorage);
+	free(CCStorage−>clusterSizes);
+	free(CCStorage−>startRowClus);
+	free(CCStorage−>startColClus);
+	free(CCStorage−>storeValues);
+	free(CCStorage);
+	return 0; // Return success
+}
+```
+- The entry point of the program where execution begins.
+- **File Handling:** Opens and reads a sparse matrix dataset from a file in a specific format (likely _Matrix Market format_).
+- **Memory Allocation:** Allocates memory for the key data structures: _StoreDiag_ and _ourMethodStr_ (CC). Error handling is included to gracefully handle memory allocation failures.
+- **Data Loading and Preprocessing:** Reads the non-zero elements of the sparse matrix from the file, stores them in the diagStorage structure, and then sorts them based on their diagonal offset.
+- **Clustering and SPMV:** Invokes the cc function to perform the clustering and sparse matrix-vector multiplication.
+- **Crucial Memory Deallocation:** Frees all dynamically allocated memory using free(). This is absolutely essential to prevent memory leaks and ensure the program operates efficiently, especially when dealing with large datasets.** Failing to deallocate memory can lead to program crashes or system instability.
+- **Return:** Indicates successful program execution by returning 0.
