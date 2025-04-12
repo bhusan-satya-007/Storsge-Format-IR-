@@ -39,7 +39,7 @@ Sparse Matrix-Vector Multiplication (SpMV) is a fundamental operation in scienti
 - Adder: This block performs addition. Its purpose is to accumulate the partial products from the multiplier.
 - MUX(Multiplexer): The MUX acts as a selector. It decides where the initial value of the accumulator (part of the Result Vector Register) comes from.
 
-### SpMV Function Block (C)
+### SpMV Function Block
 ```
 void spmv_coo(const double* x, double* y, const sparse_matrix_coo* A) {
  int num_rows = A->num_rows;
@@ -92,3 +92,121 @@ struct StoreDiag∗ allocate_mem_diag(struct StoreDiag∗ diagStorage , int nonZ
 - Allocates memory for arrays within an _ourMethodStr_ (CC) structure.
 - _clusterSizes_, _startRowClus_, and _startColClus_ are initially allocated for only 1 integer. This is inefficient and likely a placeholder, requiring later reallocation.
 - Sets the _rows_, _cols_, and _nonZeros_ members.
+
+### Merge Funtion to merge two sorted subarrays into one sorted array
+```
+/* Function to merge two sorted subarrays during merge sort
+Parameters:
+
+CCStorage: A pointer to the StoreDiag struct
+l: The left index of the subarray to be merged
+m: The middle index of the subarray to be merged
+r: The right index of the subarray to be merged
+Return Value: void (modifies the StoreDiag struct directly)
+*/
+
+void merge(struct StoreDiag* CCStorage, int l, int m, int r) {
+	int i, j, k;
+	int n1 = m - l + 1; // Size of the left subarray
+	int n2 = r - m; // Size of the right subarray
+
+	// Temporary arrays for left and right subarrays
+	int* LOffsets = (int*)malloc(n1 * sizeof(int));
+	int* LRows = (int*)malloc(n1 * sizeof(int));
+	int* LCols = (int*)malloc(n1 * sizeof(int));
+	double* LValues = (double*)malloc(n1 * sizeof(double));
+
+	int* ROffsets = (int*)malloc(n2 * sizeof(int));
+	int* RRows = (int*)malloc(n2 * sizeof(int));
+	int* RCols = (int*)malloc(n2 * sizeof(int));
+	double* RValues = (double*)malloc(n2 * sizeof(double));
+
+	 if (!LOffsets || !LRows || !LCols || !LValues || !ROffsets || !RRows || !RCols || !RValues) {
+		fprintf ( stderr , "Memory allocation failed in merge\n") ;
+		exit (1) ; // Handle memory allocation failure
+	}
+
+	// Copy data to temporary arrays
+	for (i = 0; i < n1; i++) {
+		LOffsets[i] = CCStorage->storeOffsets[l + i];
+		LRows[i] = CCStorage->storeRow[l + i];
+		LCols[i] = CCStorage->storeCol[l + i];
+		LValues[i] = CCStorage->storeValues[l + i];
+	}
+
+	for (j = 0; j < n2; j++) {
+		ROffsets[j] = CCStorage->storeOffsets[m + 1 + j];
+		RRows[j] = CCStorage->storeRow[m + 1 + j];
+		RCols[j] = CCStorage->storeCol[m + 1 + j];
+		RValues[j] = CCStorage->storeValues[m + 1 + j];
+	}
+
+	// Merge the temporary arrays back into the original arrays in CCStorage
+	i=0;
+	j=0;
+	k=1;
+	
+	while (i < n1 && j < n2) {
+		if (LOffsets[i] <= ROffsets[j]) {
+			CCStorage->storeOffsets[k] = LOffsets[i];
+			CCStorage->storeRow[k] = LRows[i];
+			CCStorage->storeCol[k] = LCols[i];
+			CCStorage->storeValues[k] = LValues[i];
+			i++;
+		} 
+		else {
+			CCStorage->storeOffsets[k] = ROffsets[j];
+			CCStorage->storeRow[k] = RRows[j];
+			CCStorage->storeCol[k] = RCols[j];
+			CCStorage->storeValues[k] = RValues[j];
+			j++;
+		}
+		k++;
+	}
+
+	// Copy remaining elements of ROffsets [], if any
+	while (j < n2) {
+		CCStorage->storeOffsets[k]=ROffsets[j];
+		CCStorage->storeRow[k]=RRows[j];
+		CCStorage->storeCol[k]=RCols[j];
+		CCStorage->storeValues[k]=RValues[j];
+		j++;
+		k++;
+	}
+
+	free ( LOffsets ) ; free (LRows) ; free (LCols) ; free (LValues) ; // Free temporary arrays for left subarray
+	free ( ROffsets) ; free (RRows) ; free (RCols) ; free (RValues) ; // Free temporary arrays for right subarray
+}
+```
+
+- The core component of merge sort. Merges two sorted subarrays into a single sorted array.
+- **l, m, r:** Left, middle, and right indices of the array segment being merged.
+- Creates temporary arrays (LOffsets, etc.) to hold the two subarrays for efficient merging.
+- Merges based on the _storeOffsets_ values, preserving the correspondence between _storeRow_, _storeCol_, and _storeValues_.
+- Critically, ensures proper memory management by freeing the temporary arrays to prevent memory leaks. This is essential for long-running processes or handling large datasets
+
+### Merge Sort Function
+```
+void mergeSort(struct StoreDiag∗ CCStorage,int l,int r){
+	 if(l < r){
+		int m=l+(r−l)/2;
+
+		mergeSort(CCStorage,l,m)
+		mergesort(CCStorage,m+l,r)
+		merge(CCStorage,l,m,r)
+	}
+}
+```
+- Aclassic recursive implementation of the merge sort algorithm.
+- **l, r:** Left and right indices of the subarray to be sorted.
+- **Base Case:** The recursion stops when the subarray contains only one element _(l >= r)_, as a single-element array is already sorted.
+- **Divide and Conquer:** The algorithm divides the subarray into two halves, recursively sorts each half, and then merges the sorted halves using the merge function.
+
+### sortOurMethodStr function
+```
+void sortOurMethodStr(struct StoreDiag∗ diagStorage){
+	mergeSort(diagStorage,0,diagStorage−>nonZeros−1) ;
+}
+```
+- Wrapper function to initiate merge sort on _StoreDiag_ structure
+- Calls _mergeSort_ on the entire range of the _storeOffsets_ array, sorting the structure by diagonal offset. This pre-processing step is important for the subsequent clustering process.
